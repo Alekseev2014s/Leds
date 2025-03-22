@@ -41,6 +41,7 @@ private:
     static int getColorPin(LEDColor color);
     static void turnOffAllLedPins();
     static void setLedState(LEDColor color, bool state);
+    static void handleBlink(BlinkConfig &blinkConfig, unsigned long currentMillis);
     static unsigned long onMillis;
     static bool isOn;
     static LEDColor onColor;

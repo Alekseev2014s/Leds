@@ -115,50 +115,41 @@ void Leds::tick() {
 
     if (!isOn) {
         if (mainBlink.active && mainBlink.colorCount > 0 && !secondaryBlinkInterruptMain && !mainBlinkPaused) {
-            if (currentMillis - mainBlink.millis >= mainBlink.interval) {
-                mainBlink.millis = currentMillis;
-                mainBlink.state = !mainBlink.state;
-
-                const int colorIndex = mainBlink.count % mainBlink.colorCount;
-                setLedState(mainBlink.colors[colorIndex], mainBlink.state);
-
-                if (!mainBlink.state) {
-                    mainBlink.count++;
-                }
-
-                if (mainBlink.totalCount > 0 && mainBlink.count >= mainBlink.totalCount) {
-                    mainBlink.active = false;
-                    off();
-                    mainBlink.count = 0;
-                    mainBlink.totalCount = 0;
-                } else if (mainBlink.count >= mainBlink.colorCount) {
-                    mainBlink.count = 0;
-                }
-            }
+            handleBlink(mainBlink, currentMillis);
+            Serial.println("Main blink");
         }
 
         if (secondaryBlink.active && currentMillis - secondaryBlink.millis >= secondaryBlink.interval) {
-            secondaryBlink.millis = currentMillis;
-            secondaryBlink.state = !secondaryBlink.state;
-
-            const int colorIndex = secondaryBlink.count % secondaryBlink.colorCount;
-            setLedState(secondaryBlink.colors[colorIndex], secondaryBlink.state);
-
-            if (!secondaryBlink.state) {
-                secondaryBlink.count++;
-            }
-
-            if (secondaryBlink.totalCount > 0 && secondaryBlink.count >= secondaryBlink.totalCount) {
-                secondaryBlink.active = false;
-                secondaryBlink.count = 0;
+            handleBlink(secondaryBlink, currentMillis);
+            if (!secondaryBlink.active) {
                 secondaryBlinkInterruptMain = false;
-                turnOffAllLedPins();
             }
         }
     }
 
     if (mainBlinkPaused && currentMillis - mainBlinkPausedMillis >= secondaryBlink.interval) {
         mainBlinkPaused = false;
+    }
+}
+
+void Leds::handleBlink(BlinkConfig &blinkConfig, const unsigned long currentMillis) {
+    if (currentMillis - blinkConfig.millis >= blinkConfig.interval) {
+        blinkConfig.millis = currentMillis;
+        blinkConfig.state = !blinkConfig.state;
+
+        const int colorIndex = blinkConfig.count % blinkConfig.colorCount;
+        setLedState(blinkConfig.colors[colorIndex], blinkConfig.state);
+
+        if (!blinkConfig.state) {
+            blinkConfig.count++;
+        }
+
+        if (blinkConfig.totalCount > 0 && blinkConfig.count >= blinkConfig.totalCount) {
+            blinkConfig.active = false;
+            turnOffAllLedPins();
+            blinkConfig.count = 0;
+            blinkConfig.totalCount = 0;
+        }
     }
 }
 
