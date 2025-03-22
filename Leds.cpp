@@ -39,7 +39,7 @@ void Leds::blink(LEDColor color1, unsigned long interval, int count) {
     secondaryBlinkColor = color1;
     secondaryBlinkInterval = interval;
     secondaryBlinkCount = 0;
-    secondaryBlinkTotalCount = count;
+    secondaryBlinkTotalCount = count * 2;
     secondaryBlinkInterruptMain = true; // Устанавливаем флаг прерывания основного мигания
     mainBlinkPaused = true; // Ставим основное мигание на паузу
     mainBlinkPausedMillis = millis(); // Запоминаем время паузы основного мигания
@@ -159,7 +159,7 @@ int Leds::getColorPin(LEDColor color) {
 void Leds::tick() {
   // Обработка основного мигания
   if (mainBlinkActive && blinkColorCount > 0 && !secondaryBlinkInterruptMain && !mainBlinkPaused) {
-    if (millis() - blinkMillis >= 300) {
+    if (millis() - blinkMillis >= secondaryBlinkInterval) {
       blinkMillis = millis();
       blinkState = !blinkState;
 
@@ -170,18 +170,18 @@ void Leds::tick() {
       }
       blinkCount++;
 
-      // Сбрасываем счетчик, если достигли конца последовательности цветов
-      if (blinkCount >= blinkColorCount) {
-        blinkCount = 0;
-      }
-
-      // Проверяем, достигнуто ли заданное количество МИГАНИЙ
-      if (blinkTotalCount > 0 && (blinkCount / blinkColorCount) >= blinkTotalCount * 2) {
-        blinkColorCount = 0;
+      // Проверяем, достигнуто ли заданное количество миганий
+      if (blinkTotalCount > 0 && blinkCount >= blinkTotalCount * 2) {
+        // Stop blinking after reaching the total count
         mainBlinkActive = false;
-        digitalWrite(RED_PIN, LOW);
-        digitalWrite(BLUE_PIN, LOW);
-        digitalWrite(GREEN_PIN, LOW);
+        off(RED, true); // Turn off all LEDs
+        blinkCount = 0;
+        blinkTotalCount = 0;
+      } else {
+        // Cycle to the next color
+        if (blinkCount >= blinkColorCount) {
+          blinkCount = 0; // Reset color index
+        }
       }
     }
   }
@@ -202,7 +202,7 @@ void Leds::tick() {
       secondaryBlinkCount++;
 
       // Проверяем, достигнуто ли заданное количество МИГАНИЙ
-      if (secondaryBlinkTotalCount > 0 && secondaryBlinkCount >= secondaryBlinkTotalCount * 2) {
+      if (secondaryBlinkTotalCount > 0 && secondaryBlinkCount >= secondaryBlinkTotalCount) {
         secondaryBlinkActive = false;
         secondaryBlinkCount = 0;
         secondaryBlinkInterruptMain = false;
