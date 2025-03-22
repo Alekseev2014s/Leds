@@ -6,6 +6,7 @@ int Leds::blinkState = LOW;
 int Leds::blinkCount = 0;
 int Leds::blinkTotalCount = 0;
 LEDColor Leds::blinkColors[3] = {LEDColor::RED, LEDColor::BLUE, LEDColor::GREEN};
+unsigned long Leds::blinkInterval = 0;
 int Leds::blinkColorCount = 0;
 unsigned long Leds::onMillis = 0;
 bool Leds::isOn = false;
@@ -48,6 +49,7 @@ void Leds::blink(LEDColor color1, unsigned long interval, int count) {
     secondaryBlinkInterruptMain = false; // Сбрасываем флаг прерывания основного мигания
     mainBlinkPaused = false; // Убираем основное мигание с паузы
     blinkColors[0] = color1;
+    blinkInterval = interval;
     blinkColorCount = 1;
     blinkMillis = millis();
     blinkCount = 0;
@@ -74,6 +76,7 @@ void Leds::blink(LEDColor color1, LEDColor color2, unsigned long interval, int c
     mainBlinkPaused = false;
     blinkColors[0] = color1;
     blinkColors[1] = color2;
+    blinkInterval = interval;
     blinkColorCount = 2;
     blinkTotalCount = 0;
     blinkMillis = millis();
@@ -102,6 +105,7 @@ void Leds::blink(LEDColor color1, LEDColor color2, LEDColor color3, unsigned lon
     blinkColors[0] = color1;
     blinkColors[1] = color2;
     blinkColors[2] = color3;
+    blinkInterval = interval;
     blinkColorCount = 3;
     blinkTotalCount = 0;
     blinkMillis = millis();
@@ -159,28 +163,31 @@ int Leds::getColorPin(LEDColor color) {
 void Leds::tick() {
   // Обработка основного мигания
   if (mainBlinkActive && blinkColorCount > 0 && !secondaryBlinkInterruptMain && !mainBlinkPaused) {
-    if (millis() - blinkMillis >= secondaryBlinkInterval) {
+    if (millis() - blinkMillis >= blinkInterval) {
       blinkMillis = millis();
       blinkState = !blinkState;
 
+      int colorIndex = blinkCount % blinkColorCount;
+
       if (blinkState == HIGH) {
-        digitalWrite(getColorPin(blinkColors[blinkCount % blinkColorCount]), HIGH);
+        digitalWrite(getColorPin(blinkColors[colorIndex]), HIGH);
       } else {
-        digitalWrite(getColorPin(blinkColors[blinkCount % blinkColorCount]), LOW);
+        digitalWrite(getColorPin(blinkColors[colorIndex]), LOW);
       }
+
       blinkCount++;
 
       // Проверяем, достигнуто ли заданное количество миганий
-      if (blinkTotalCount > 0 && blinkCount >= blinkTotalCount * 2) {
-        // Stop blinking after reaching the total count
+      if (blinkTotalCount > 0 && blinkCount / blinkColorCount >= blinkTotalCount) {
+        // Останавливаем мигание после достижения заданного количества
         mainBlinkActive = false;
-        off(RED, true); // Turn off all LEDs
+        off(RED, true); // Выключаем все светодиоды
         blinkCount = 0;
         blinkTotalCount = 0;
       } else {
-        // Cycle to the next color
+        // Переходим к следующему цвету
         if (blinkCount >= blinkColorCount) {
-          blinkCount = 0; // Reset color index
+          blinkCount = 0; // Сбрасываем индекс цвета
         }
       }
     }

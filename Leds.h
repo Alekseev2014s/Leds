@@ -31,6 +31,7 @@ private:
   static int blinkCount;
   static int blinkTotalCount;
   static LEDColor blinkColors[3];
+  static unsigned long blinkInterval;
   static int blinkColorCount;
   static unsigned long onMillis;
   static bool isOn;
