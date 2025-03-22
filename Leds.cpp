@@ -23,6 +23,15 @@ bool Leds::mainBlinkPaused = false; // Инициализируем флаг п�
 unsigned long Leds::mainBlinkPausedMillis = 0; // Инициализируем переменную времени паузы основного мигания
 LEDColor Leds::mainBlinkColor = LEDColor::RED; // Инициализируем переменную основного цвета мигания
 
+void Leds::begin() {
+  pinMode(RED_PIN, OUTPUT);
+  pinMode(BLUE_PIN, OUTPUT);
+  pinMode(GREEN_PIN, OUTPUT);
+  digitalWrite(RED_PIN, LOW);
+  digitalWrite(BLUE_PIN, LOW);
+  digitalWrite(GREEN_PIN, LOW);
+}
+
 // Функция для мигания одним светодиодом
 void Leds::blink(LEDColor color1, unsigned long interval, int count) {
   if (count > 0) {
@@ -55,7 +64,7 @@ void Leds::blink(LEDColor color1, LEDColor color2, unsigned long interval, int c
     secondaryBlinkColor = color1;
     secondaryBlinkInterval = interval;
     secondaryBlinkCount = 0;
-    secondaryBlinkTotalCount = count * 2; // Умножаем на 2 для переключений
+    secondaryBlinkTotalCount = count * 2;
     secondaryBlinkInterruptMain = true;
     mainBlinkPaused = true;
     mainBlinkPausedMillis = millis();
@@ -66,11 +75,11 @@ void Leds::blink(LEDColor color1, LEDColor color2, unsigned long interval, int c
     blinkColors[0] = color1;
     blinkColors[1] = color2;
     blinkColorCount = 2;
-    blinkTotalCount = 0; // Сбрасываем, так как count = 0
+    blinkTotalCount = 0;
     blinkMillis = millis();
     blinkCount = 0;
     blinkState = LOW;
-    mainBlinkActive = true;
+    mainBlinkActive = true; // Добавляем эту строку
     mainBlinkColor = color1;
   }
 }
@@ -82,7 +91,7 @@ void Leds::blink(LEDColor color1, LEDColor color2, LEDColor color3, unsigned lon
     secondaryBlinkColor = color1;
     secondaryBlinkInterval = interval;
     secondaryBlinkCount = 0;
-    secondaryBlinkTotalCount = count * 2; // Умножаем на 2 для переключений
+    secondaryBlinkTotalCount = count * 2;
     secondaryBlinkInterruptMain = true;
     mainBlinkPaused = true;
     mainBlinkPausedMillis = millis();
@@ -94,11 +103,11 @@ void Leds::blink(LEDColor color1, LEDColor color2, LEDColor color3, unsigned lon
     blinkColors[1] = color2;
     blinkColors[2] = color3;
     blinkColorCount = 3;
-    blinkTotalCount = 0; // Сбрасываем, так как count = 0
+    blinkTotalCount = 0;
     blinkMillis = millis();
     blinkCount = 0;
     blinkState = LOW;
-    mainBlinkActive = true;
+    mainBlinkActive = true; // Добавляем эту строку
     mainBlinkColor = color1;
   }
 }
@@ -161,8 +170,13 @@ void Leds::tick() {
       }
       blinkCount++;
 
+      // Сбрасываем счетчик, если достигли конца последовательности цветов
+      if (blinkCount >= blinkColorCount) {
+        blinkCount = 0;
+      }
+
       // Проверяем, достигнуто ли заданное количество МИГАНИЙ
-      if (blinkTotalCount > 0 && blinkCount / blinkColorCount >= blinkTotalCount * 2) {
+      if (blinkTotalCount > 0 && (blinkCount / blinkColorCount) >= blinkTotalCount * 2) {
         blinkColorCount = 0;
         mainBlinkActive = false;
         digitalWrite(RED_PIN, LOW);
