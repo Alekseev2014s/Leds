@@ -3,6 +3,7 @@
 unsigned long Leds::currentMillis = 0;
 unsigned long Leds::onMillis = 0;
 bool Leds::isOn = false;
+bool Leds::isOnPrev = false;
 LEDColor Leds::onColor = LEDColor::RED;
 unsigned long Leds::onDuration = 0;
 bool Leds::secondaryBlinkInterruptMain = false;
@@ -66,11 +67,28 @@ void Leds::blink(const std::initializer_list<LEDColor> colors, const int count, 
     blinkConfig->count = 0;
 
     turnOffAllLedPins();
+    if (isOn) {
+        isOn = false;
+        isOnPrev = true;
+    }
+}
+
+void Leds::blinkOff() {
+    if (mainBlink.active) {
+        mainBlink.active = false;
+        turnOffAllLedPins();
+    }
 }
 
 void Leds::on(const LEDColor color, const unsigned long duration) {
     onColor = color;
     onDuration = duration;
+    if (!duration) {
+        if (mainBlink.active) {
+            mainBlink.active = false;
+            turnOffAllLedPins();
+        }
+    }
     isOn = true;
     onMillis = millis();
     turnOffAllLedPins();
@@ -82,6 +100,7 @@ void Leds::off() {
     mainBlink.colorCount = 0;
     secondaryBlink.active = false;
     isOn = false;
+    isOnPrev = false;
     mainBlink.active = false;
     secondaryBlinkInterruptMain = false;
     mainBlinkPaused = false;
@@ -108,6 +127,9 @@ void Leds::tick() {
     currentMillis = millis();
 
     if (isOn) {
+        if (!onDuration) {
+            return;
+        }
         if (hasElapsed(onMillis, onDuration)) {
             digitalWrite(getColorPin(onColor), !ledOnLevel);
             isOn = false;
@@ -127,6 +149,10 @@ void Leds::tick() {
         handleBlink(secondaryBlink);
         if (!secondaryBlink.active) {
             secondaryBlinkInterruptMain = false;
+            if (!mainBlink.active && isOnPrev) {
+                isOnPrev = false;
+                on(onColor, onDuration);
+            }
         }
     }
 }

@@ -31,6 +31,7 @@ class Leds {
 public:
     static void blink(std::initializer_list<LEDColor> colors, int count = 0,
                       unsigned long interval = mainBlink.interval);
+    static void blinkOff();
     static void on(LEDColor color, unsigned long duration = 0);
     static void off();
     static void tick();
@@ -47,6 +48,7 @@ private:
     static unsigned long currentMillis;
     static unsigned long onMillis;
     static bool isOn;
+    static bool isOnPrev;
     static LEDColor onColor;
     static unsigned long onDuration;
     static bool secondaryBlinkInterruptMain;
