@@ -41,8 +41,9 @@ private:
   static unsigned long secondaryBlinkMillis;
   static int secondaryBlinkCount;
   static int secondaryBlinkTotalCount;
-  static LEDColor secondaryBlinkColor;
+  static LEDColor secondaryBlinkColor[3];
   static unsigned long secondaryBlinkInterval;
+  static int secondaryBlinkColorCount;
   static bool mainBlinkActive; // Добавляем флаг для основного мигания
   static bool secondaryBlinkInterruptMain; // Добавляем флаг для прерывания основного мигания
   static bool mainBlinkPaused; // Добавляем флаг для паузы основного мигания

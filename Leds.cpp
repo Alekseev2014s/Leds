@@ -16,8 +16,9 @@ bool Leds::secondaryBlinkActive = false;
 unsigned long Leds::secondaryBlinkMillis = 0;
 int Leds::secondaryBlinkCount = 0;
 int Leds::secondaryBlinkTotalCount = 0;
-LEDColor Leds::secondaryBlinkColor = LEDColor::RED;
+LEDColor Leds::secondaryBlinkColor[3] = {LEDColor::RED, LEDColor::BLUE, LEDColor::GREEN};
 unsigned long Leds::secondaryBlinkInterval = 0;
+int Leds::secondaryBlinkColorCount = 0;
 bool Leds::mainBlinkActive = false; // Инициализируем флаг основного мигания
 bool Leds::secondaryBlinkInterruptMain = false; // Инициализируем флаг прерывания основного мигания
 bool Leds::mainBlinkPaused = false; // Инициализируем флаг паузы основного мигания
@@ -37,10 +38,11 @@ void Leds::begin() {
 void Leds::blink(LEDColor color1, unsigned long interval, int count) {
   if (count > 0) {
     secondaryBlinkActive = true;
-    secondaryBlinkColor = color1;
+    secondaryBlinkColor[0] = color1;
     secondaryBlinkInterval = interval;
+    secondaryBlinkColorCount = 1;
     secondaryBlinkCount = 0;
-    secondaryBlinkTotalCount = count * 2;
+    secondaryBlinkTotalCount = count;
     secondaryBlinkInterruptMain = true; // Устанавливаем флаг прерывания основного мигания
     mainBlinkPaused = true; // Ставим основное мигание на паузу
     mainBlinkPausedMillis = millis(); // Запоминаем время паузы основного мигания
@@ -63,10 +65,12 @@ void Leds::blink(LEDColor color1, unsigned long interval, int count) {
 void Leds::blink(LEDColor color1, LEDColor color2, unsigned long interval, int count) {
   if (count > 0) {
     secondaryBlinkActive = true;
-    secondaryBlinkColor = color1;
+    secondaryBlinkColor[0] = color1;
+    secondaryBlinkColor[1] = color2;
     secondaryBlinkInterval = interval;
+    secondaryBlinkColorCount = 2;
     secondaryBlinkCount = 0;
-    secondaryBlinkTotalCount = count * 2;
+    secondaryBlinkTotalCount = count;
     secondaryBlinkInterruptMain = true;
     mainBlinkPaused = true;
     mainBlinkPausedMillis = millis();
@@ -91,10 +95,13 @@ void Leds::blink(LEDColor color1, LEDColor color2, unsigned long interval, int c
 void Leds::blink(LEDColor color1, LEDColor color2, LEDColor color3, unsigned long interval, int count) {
   if (count > 0) {
     secondaryBlinkActive = true;
-    secondaryBlinkColor = color1;
+    secondaryBlinkColor[0] = color1;
+    secondaryBlinkColor[1] = color2;
+    secondaryBlinkColor[2] = color3;
     secondaryBlinkInterval = interval;
+    secondaryBlinkColorCount = 3;
     secondaryBlinkCount = 0;
-    secondaryBlinkTotalCount = count * 2;
+    secondaryBlinkTotalCount = count;
     secondaryBlinkInterruptMain = true;
     mainBlinkPaused = true;
     mainBlinkPausedMillis = millis();
@@ -205,8 +212,20 @@ void Leds::tick() {
   if (secondaryBlinkActive) {
     if (millis() - secondaryBlinkMillis >= secondaryBlinkInterval) {
       secondaryBlinkMillis = millis();
-      digitalWrite(getColorPin(secondaryBlinkColor), !digitalRead(getColorPin(secondaryBlinkColor)));
-      secondaryBlinkCount++;
+
+      int colorIndex = secondaryBlinkCount % secondaryBlinkColorCount;
+
+      Serial.print("Secondary blink, colorIndex: ");
+      Serial.println(colorIndex);
+
+      Serial.print("read pin: ");
+      Serial.println(digitalRead(getColorPin(secondaryBlinkColor[colorIndex])));
+
+      digitalWrite(getColorPin(secondaryBlinkColor[colorIndex]), !digitalRead(getColorPin(secondaryBlinkColor[colorIndex])));
+
+      if (digitalRead(getColorPin(secondaryBlinkColor[colorIndex])) == LOW) {
+        secondaryBlinkCount++;
+      }
 
       // Проверяем, достигнуто ли заданное количество МИГАНИЙ
       if (secondaryBlinkTotalCount > 0 && secondaryBlinkCount >= secondaryBlinkTotalCount) {
