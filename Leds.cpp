@@ -1,5 +1,6 @@
 #include "Leds.h"
 
+unsigned long Leds::currentMillis = 0;
 unsigned long Leds::onMillis = 0;
 bool Leds::isOn = false;
 LEDColor Leds::onColor = LEDColor::RED;
@@ -105,35 +106,38 @@ int Leds::getColorPin(const LEDColor color) {
     }
 }
 
-void Leds::tick() {
-    const unsigned long currentMillis = millis();
+bool Leds::hasElapsed(const unsigned long startMillis, const unsigned long duration) {
+    return currentMillis - startMillis >= duration;
+}
 
-    if (isOn && onDuration > 0 && currentMillis - onMillis >= onDuration) {
+void Leds::tick() {
+    currentMillis = millis();
+
+    if (isOn && onDuration > 0 && hasElapsed(onMillis, onDuration)) {
         digitalWrite(getColorPin(onColor), !ledOnLevel);
         isOn = false;
     }
 
     if (!isOn) {
         if (mainBlink.active && mainBlink.colorCount > 0 && !secondaryBlinkInterruptMain && !mainBlinkPaused) {
-            handleBlink(mainBlink, currentMillis);
-            Serial.println("Main blink");
+            handleBlink(mainBlink);
         }
 
-        if (secondaryBlink.active && currentMillis - secondaryBlink.millis >= secondaryBlink.interval) {
-            handleBlink(secondaryBlink, currentMillis);
+        if (secondaryBlink.active) {
+            handleBlink(secondaryBlink);
             if (!secondaryBlink.active) {
                 secondaryBlinkInterruptMain = false;
             }
         }
     }
 
-    if (mainBlinkPaused && currentMillis - mainBlinkPausedMillis >= secondaryBlink.interval) {
+    if (mainBlinkPaused && hasElapsed(mainBlinkPausedMillis, secondaryBlink.interval)) {
         mainBlinkPaused = false;
     }
 }
 
-void Leds::handleBlink(BlinkConfig &blinkConfig, const unsigned long currentMillis) {
-    if (currentMillis - blinkConfig.millis >= blinkConfig.interval) {
+void Leds::handleBlink(BlinkConfig &blinkConfig) {
+    if (hasElapsed(blinkConfig.millis, blinkConfig.interval)) {
         blinkConfig.millis = currentMillis;
         blinkConfig.state = !blinkConfig.state;
 

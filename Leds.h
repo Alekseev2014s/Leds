@@ -8,6 +8,7 @@
 #define BLUE_LED_PIN 18
 #define GREEN_LED_PIN 19
 #define DEFAULT_INTERVAL 500;
+#define SIZE_COLORS 10
 
 enum LEDColor {
     RED,
@@ -20,7 +21,7 @@ struct BlinkConfig {
     int state = 0;
     int count = 0;
     int totalCount = 0;
-    LEDColor colors[3] = {LEDColor::RED, LEDColor::BLUE, LEDColor::GREEN};
+    LEDColor colors[SIZE_COLORS];
     unsigned long interval = DEFAULT_INTERVAL;
     int colorCount = 0;
     bool active = false;
@@ -41,7 +42,9 @@ private:
     static int getColorPin(LEDColor color);
     static void turnOffAllLedPins();
     static void setLedState(LEDColor color, bool state);
-    static void handleBlink(BlinkConfig &blinkConfig, unsigned long currentMillis);
+    static void handleBlink(BlinkConfig &blinkConfig);
+    static bool hasElapsed(unsigned long startMillis, unsigned long duration);
+    static unsigned long currentMillis;
     static unsigned long onMillis;
     static bool isOn;
     static LEDColor onColor;
