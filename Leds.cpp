@@ -1,6 +1,7 @@
 #include "Leds.h"
 
 unsigned long Leds::blinkMillis = 0;
+int Leds::blinkState = 0;
 int Leds::blinkCount = 0;
 int Leds::blinkTotalCount = 0;
 LEDColor Leds::blinkColors[3] = {LEDColor::RED, LEDColor::BLUE, LEDColor::GREEN};
@@ -12,6 +13,7 @@ LEDColor Leds::onColor = LEDColor::RED;
 unsigned long Leds::onDuration = 0;
 bool Leds::secondaryBlinkActive = false;
 unsigned long Leds::secondaryBlinkMillis = 0;
+int Leds::secondaryBlinkState = 0;
 int Leds::secondaryBlinkCount = 0;
 int Leds::secondaryBlinkTotalCount = 0;
 LEDColor Leds::secondaryBlinkColor[3] = {LEDColor::RED, LEDColor::BLUE, LEDColor::GREEN};
@@ -34,16 +36,20 @@ void Leds::begin(const int redPin, const int greenPin, const int bluePin) {
   pinMode(Leds::redPin, OUTPUT);
   pinMode(Leds::bluePin, OUTPUT);
   pinMode(Leds::greenPin, OUTPUT);
-  digitalWrite(Leds::redPin, LOW);
-  digitalWrite(Leds::bluePin, LOW);
-  digitalWrite(Leds::greenPin, LOW);
+  turnOffAllLedPins();
 }
 
 void Leds::setInterval(const unsigned long time) {
   blinkInterval = time;
 }
 
-void Leds::blink(std::initializer_list<LEDColor> colors, unsigned long interval, int count) {
+void Leds::turnOffAllLedPins() {
+  digitalWrite(redPin, LOW);
+  digitalWrite(bluePin, LOW);
+  digitalWrite(greenPin, LOW);
+}
+
+void Leds::blink(std::initializer_list<LEDColor> colors, int count, unsigned long interval) {
   secondaryBlinkActive = count > 0;
   secondaryBlinkInterval = interval;
   secondaryBlinkCount = 0;
@@ -74,9 +80,7 @@ void Leds::blink(std::initializer_list<LEDColor> colors, unsigned long interval,
     mainBlinkColor = *colors.begin();
   }
 
-  digitalWrite(redPin, LOW);
-  digitalWrite(bluePin, LOW);
-  digitalWrite(greenPin, LOW);
+  turnOffAllLedPins();
 }
 
 void Leds::on(const LEDColor color, const unsigned long duration) {
@@ -84,27 +88,18 @@ void Leds::on(const LEDColor color, const unsigned long duration) {
   onDuration = duration;
   isOn = true;
   onMillis = millis();
+  turnOffAllLedPins();
   digitalWrite(getColorPin(color), HIGH);
+}
+
+void Leds::off() {
+  turnOffAllLedPins();
+  blinkColorCount = 0;
   secondaryBlinkActive = false;
+  isOn = false;
   mainBlinkActive = false;
   secondaryBlinkInterruptMain = false;
   mainBlinkPaused = false;
-}
-
-void Leds::off(const LEDColor color, const bool all) {
-  if (all) {
-    digitalWrite(redPin, LOW);
-    digitalWrite(bluePin, LOW);
-    digitalWrite(greenPin, LOW);
-    blinkColorCount = 0;
-    secondaryBlinkActive = false;
-    isOn = false;
-    mainBlinkActive = false;
-    secondaryBlinkInterruptMain = false;
-    mainBlinkPaused = false;
-  } else {
-    digitalWrite(getColorPin(color), LOW);
-  }
 }
 
 int Leds::getColorPin(const LEDColor color) {
@@ -123,21 +118,27 @@ int Leds::getColorPin(const LEDColor color) {
 void Leds::tick() {
   const unsigned long currentMillis = millis();
 
-  if (mainBlinkActive && blinkColorCount > 0 && !secondaryBlinkInterruptMain && !mainBlinkPaused) {
+  if (isOn && onDuration > 0 && currentMillis - onMillis >= onDuration) {
+    digitalWrite(getColorPin(onColor), LOW);
+    isOn = false;
+  }
+
+  if (mainBlinkActive && blinkColorCount > 0 && !secondaryBlinkInterruptMain && !mainBlinkPaused && !isOn) {
     if (currentMillis - blinkMillis >= blinkInterval) {
       blinkMillis = currentMillis;
+      blinkState = !blinkState;
 
       const int colorIndex = blinkCount % blinkColorCount;
 
-      digitalWrite(getColorPin(blinkColors[colorIndex]), !digitalRead(getColorPin(blinkColors[colorIndex])));
+      digitalWrite(getColorPin(blinkColors[colorIndex]), blinkState);
 
-      if (digitalRead(getColorPin(blinkColors[colorIndex])) == LOW) {
+      if (blinkState == LOW) {
         blinkCount++;
       }
 
       if (blinkTotalCount > 0 && blinkCount >= blinkTotalCount) {
         mainBlinkActive = false;
-        off(RED, true);
+        off();
         blinkCount = 0;
         blinkTotalCount = 0;
       } else {
@@ -148,19 +149,15 @@ void Leds::tick() {
     }
   }
 
-  if (isOn && onDuration > 0 && currentMillis - onMillis >= onDuration) {
-    digitalWrite(getColorPin(onColor), LOW);
-    isOn = false;
-  }
-
-  if (secondaryBlinkActive && currentMillis - secondaryBlinkMillis >= secondaryBlinkInterval) {
+  if (secondaryBlinkActive && currentMillis - secondaryBlinkMillis >= secondaryBlinkInterval && !isOn) {
     secondaryBlinkMillis = currentMillis;
+    secondaryBlinkState = !secondaryBlinkState;
 
     int colorIndex = secondaryBlinkCount % secondaryBlinkColorCount;
 
-    digitalWrite(getColorPin(secondaryBlinkColor[colorIndex]), !digitalRead(getColorPin(secondaryBlinkColor[colorIndex])));
+    digitalWrite(getColorPin(secondaryBlinkColor[colorIndex]), secondaryBlinkState);
 
-    if (digitalRead(getColorPin(secondaryBlinkColor[colorIndex])) == LOW) {
+    if (secondaryBlinkState == LOW) {
       secondaryBlinkCount++;
     }
 
@@ -168,9 +165,7 @@ void Leds::tick() {
       secondaryBlinkActive = false;
       secondaryBlinkCount = 0;
       secondaryBlinkInterruptMain = false;
-      digitalWrite(redPin, LOW);
-      digitalWrite(bluePin, LOW);
-      digitalWrite(greenPin, LOW);
+      turnOffAllLedPins();
     }
   }
 

@@ -16,14 +16,15 @@ enum LEDColor {
 
 class Leds {
 public:
-  static void blink(std::initializer_list<LEDColor> colors, unsigned long interval = blinkInterval, int count = 0);
+  static void blink(std::initializer_list<LEDColor> colors, int count = 0, unsigned long interval = blinkInterval);
   static void on(LEDColor color, unsigned long duration = 0);
-  static void off(LEDColor color = LEDColor::RED, bool all = true);
+  static void off();
   static void tick();
   static void setInterval(unsigned long time);
   static void begin(int redPin, int greenPin, int bluePin);
 private:
   static int getColorPin(LEDColor color);
+  static void turnOffAllLedPins();
   static int redPin;
   static int bluePin;
   static int greenPin;
@@ -40,6 +41,7 @@ private:
   static unsigned long onDuration;
   static bool secondaryBlinkActive;
   static unsigned long secondaryBlinkMillis;
+  static int secondaryBlinkState;
   static int secondaryBlinkCount;
   static int secondaryBlinkTotalCount;
   static LEDColor secondaryBlinkColor[3];
