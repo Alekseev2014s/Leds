@@ -113,26 +113,27 @@ bool Leds::hasElapsed(const unsigned long startMillis, const unsigned long durat
 void Leds::tick() {
     currentMillis = millis();
 
-    if (isOn && onDuration > 0 && hasElapsed(onMillis, onDuration)) {
-        digitalWrite(getColorPin(onColor), !ledOnLevel);
-        isOn = false;
-    }
-
-    if (!isOn) {
-        if (mainBlink.active && mainBlink.colorCount > 0 && !secondaryBlinkInterruptMain && !mainBlinkPaused) {
-            handleBlink(mainBlink);
+    if (isOn) {
+        if (hasElapsed(onMillis, onDuration)) {
+            digitalWrite(getColorPin(onColor), !ledOnLevel);
+            isOn = false;
         }
-
-        if (secondaryBlink.active) {
-            handleBlink(secondaryBlink);
-            if (!secondaryBlink.active) {
-                secondaryBlinkInterruptMain = false;
-            }
-        }
+        return;
     }
 
     if (mainBlinkPaused && hasElapsed(mainBlinkPausedMillis, secondaryBlink.interval)) {
         mainBlinkPaused = false;
+    }
+
+    if (mainBlink.active && mainBlink.colorCount > 0 && !secondaryBlinkInterruptMain && !mainBlinkPaused) {
+        handleBlink(mainBlink);
+    }
+
+    if (secondaryBlink.active) {
+        handleBlink(secondaryBlink);
+        if (!secondaryBlink.active) {
+            secondaryBlinkInterruptMain = false;
+        }
     }
 }
 
