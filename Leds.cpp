@@ -27,8 +27,9 @@ LEDColor Leds::mainBlinkColor = LEDColor::RED;
 int Leds::redPin = RED_LED_PIN;
 int Leds::bluePin = BLUE_LED_PIN;
 int Leds::greenPin = GREEN_LED_PIN;
+int Leds::ledOnLevel = HIGH;
 
-void Leds::begin(const int redPin, const int greenPin, const int bluePin) {
+void Leds::begin(const int redPin, const int greenPin, const int bluePin){
   Leds::redPin = redPin;
   Leds::bluePin = bluePin;
   Leds::greenPin = greenPin;
@@ -39,17 +40,21 @@ void Leds::begin(const int redPin, const int greenPin, const int bluePin) {
   turnOffAllLedPins();
 }
 
+void Leds::setOnLevel(const int level) {
+  ledOnLevel = level;
+}
+
 void Leds::setInterval(const unsigned long time) {
   blinkInterval = time;
 }
 
 void Leds::turnOffAllLedPins() {
-  digitalWrite(redPin, LOW);
-  digitalWrite(bluePin, LOW);
-  digitalWrite(greenPin, LOW);
+  digitalWrite(redPin, !ledOnLevel);
+  digitalWrite(bluePin, !ledOnLevel);
+  digitalWrite(greenPin, !ledOnLevel);
 }
 
-void Leds::blink(std::initializer_list<LEDColor> colors, int count, unsigned long interval) {
+void Leds::blink(const std::initializer_list<LEDColor> colors, const int count, const unsigned long interval) {
   secondaryBlinkActive = count > 0;
   secondaryBlinkInterval = interval;
   secondaryBlinkCount = 0;
@@ -89,7 +94,7 @@ void Leds::on(const LEDColor color, const unsigned long duration) {
   isOn = true;
   onMillis = millis();
   turnOffAllLedPins();
-  digitalWrite(getColorPin(color), HIGH);
+  digitalWrite(getColorPin(color), ledOnLevel);
 }
 
 void Leds::off() {
@@ -119,7 +124,7 @@ void Leds::tick() {
   const unsigned long currentMillis = millis();
 
   if (isOn && onDuration > 0 && currentMillis - onMillis >= onDuration) {
-    digitalWrite(getColorPin(onColor), LOW);
+    digitalWrite(getColorPin(onColor), !ledOnLevel);
     isOn = false;
   }
 
@@ -130,9 +135,9 @@ void Leds::tick() {
 
       const int colorIndex = blinkCount % blinkColorCount;
 
-      digitalWrite(getColorPin(blinkColors[colorIndex]), blinkState);
+      digitalWrite(getColorPin(blinkColors[colorIndex]), blinkState ? ledOnLevel : !ledOnLevel);
 
-      if (blinkState == LOW) {
+      if (!blinkState) {
         blinkCount++;
       }
 
@@ -155,9 +160,9 @@ void Leds::tick() {
 
     int colorIndex = secondaryBlinkCount % secondaryBlinkColorCount;
 
-    digitalWrite(getColorPin(secondaryBlinkColor[colorIndex]), secondaryBlinkState);
+    digitalWrite(getColorPin(secondaryBlinkColor[colorIndex]), secondaryBlinkState ? ledOnLevel : !ledOnLevel);
 
-    if (secondaryBlinkState == LOW) {
+    if (!secondaryBlinkState) {
       secondaryBlinkCount++;
     }
 

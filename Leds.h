@@ -22,6 +22,7 @@ public:
   static void tick();
   static void setInterval(unsigned long time);
   static void begin(int redPin, int greenPin, int bluePin);
+  static void setOnLevel(int level);
 private:
   static int getColorPin(LEDColor color);
   static void turnOffAllLedPins();
@@ -52,6 +53,7 @@ private:
   static bool mainBlinkPaused;
   static unsigned long mainBlinkPausedMillis;
   static LEDColor mainBlinkColor;
+  static int ledOnLevel;
 };
 
 #endif
