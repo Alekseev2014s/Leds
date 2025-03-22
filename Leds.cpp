@@ -42,34 +42,28 @@ void Leds::turnOffAllLedPins() {
 }
 
 void Leds::blink(const std::initializer_list<LEDColor> colors, const int count, const unsigned long interval) {
-    secondaryBlink.active = count > 0;
-    secondaryBlink.interval = interval;
-    secondaryBlink.count = 0;
-    secondaryBlink.totalCount = count;
-    secondaryBlinkInterruptMain = secondaryBlink.active;
-    mainBlinkPaused = secondaryBlink.active;
-    mainBlinkPausedMillis = millis();
+    BlinkConfig* blinkConfig = &mainBlink;
+    if (count > 0) {
+        secondaryBlink.active = true;
+        secondaryBlink.interval = interval;
+        secondaryBlink.totalCount = count;
+        secondaryBlinkInterruptMain = true;
+        mainBlinkPaused = true;
+        mainBlinkPausedMillis = millis();
+        blinkConfig = &secondaryBlink;
+    } else {
+        mainBlink.interval = interval;
+        mainBlink.totalCount = 0;
+        mainBlink.millis = millis();
+        mainBlink.active = true;
+    }
 
     int colorIndex = 0;
     for (const LEDColor color : colors) {
-        if (secondaryBlink.active) {
-            secondaryBlink.colors[colorIndex] = color;
-        } else {
-            mainBlink.colors[colorIndex] = color;
-        }
-        colorIndex++;
+        blinkConfig->colors[colorIndex++] = color;
     }
-
-    if (secondaryBlink.active) {
-        secondaryBlink.colorCount = colorIndex;
-    } else {
-        mainBlink.interval = interval;
-        mainBlink.colorCount = colorIndex;
-        mainBlink.totalCount = 0;
-        mainBlink.millis = millis();
-        mainBlink.count = 0;
-        mainBlink.active = true;
-    }
+    blinkConfig->colorCount = colorIndex;
+    blinkConfig->count = 0;
 
     turnOffAllLedPins();
 }
@@ -161,3 +155,4 @@ void Leds::handleBlink(BlinkConfig &blinkConfig) {
 void Leds::setLedState(const LEDColor color, const bool state) {
     digitalWrite(getColorPin(color), state ? ledOnLevel : !ledOnLevel);
 }
+
