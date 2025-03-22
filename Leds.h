@@ -2,12 +2,12 @@
 #define Leds_h
 
 #include <Arduino.h>
+#include <initializer_list>
 
 #define RED_LED_PIN 23
 #define BLUE_LED_PIN 18
 #define GREEN_LED_PIN 19
 
-// Перечисление для удобства работы с цветами
 enum LEDColor {
   RED,
   BLUE,
@@ -16,9 +16,7 @@ enum LEDColor {
 
 class Leds {
 public:
-  static void blink(LEDColor color1, unsigned long interval = blinkInterval, int count = 0);
-  static void blink(LEDColor color1, LEDColor color2, unsigned long interval = blinkInterval, int count = 0);
-  static void blink(LEDColor color1, LEDColor color2, LEDColor color3, unsigned long interval = blinkInterval, int count = 0);
+  static void blink(std::initializer_list<LEDColor> colors, unsigned long interval = blinkInterval, int count = 0);
   static void on(LEDColor color, unsigned long duration = 0);
   static void off(LEDColor color = LEDColor::RED, bool all = true);
   static void tick();

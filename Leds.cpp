@@ -43,85 +43,35 @@ void Leds::setInterval(const unsigned long time) {
   blinkInterval = time;
 }
 
-void Leds::blink(LEDColor color1, const unsigned long interval, const int count) {
+void Leds::blink(std::initializer_list<LEDColor> colors, unsigned long interval, int count) {
   secondaryBlinkActive = count > 0;
-  secondaryBlinkColor[0] = color1;
   secondaryBlinkInterval = interval;
-  secondaryBlinkColorCount = 1;
   secondaryBlinkCount = 0;
   secondaryBlinkTotalCount = count;
   secondaryBlinkInterruptMain = secondaryBlinkActive;
   mainBlinkPaused = secondaryBlinkActive;
   mainBlinkPausedMillis = millis();
 
-  if (!secondaryBlinkActive) {
-    blinkColors[0] = color1;
-    blinkInterval = interval;
-    blinkColorCount = 1;
-    blinkMillis = millis();
-    blinkCount = 0;
-    mainBlinkActive = true;
-    mainBlinkColor = color1;
+  int colorIndex = 0;
+  for (LEDColor color : colors) {
+    if (secondaryBlinkActive) {
+      secondaryBlinkColor[colorIndex] = color;
+    } else {
+      blinkColors[colorIndex] = color;
+    }
+    colorIndex++;
   }
 
-  digitalWrite(redPin, LOW);
-  digitalWrite(bluePin, LOW);
-  digitalWrite(greenPin, LOW);
-}
-
-void Leds::blink(const LEDColor color1, const LEDColor color2, const unsigned long interval, const int count) {
-  secondaryBlinkActive = count > 0;
-  secondaryBlinkColor[0] = color1;
-  secondaryBlinkColor[1] = color2;
-  secondaryBlinkInterval = interval;
-  secondaryBlinkColorCount = 2;
-  secondaryBlinkCount = 0;
-  secondaryBlinkTotalCount = count;
-  secondaryBlinkInterruptMain = secondaryBlinkActive;
-  mainBlinkPaused = secondaryBlinkActive;
-  mainBlinkPausedMillis = millis();
-
-  if (!secondaryBlinkActive) {
-    blinkColors[0] = color1;
-    blinkColors[1] = color2;
+  if (secondaryBlinkActive) {
+    secondaryBlinkColorCount = colorIndex;
+  } else {
     blinkInterval = interval;
-    blinkColorCount = 2;
+    blinkColorCount = colorIndex;
     blinkTotalCount = 0;
     blinkMillis = millis();
     blinkCount = 0;
     mainBlinkActive = true;
-    mainBlinkColor = color1;
-  }
-
-  digitalWrite(redPin, LOW);
-  digitalWrite(bluePin, LOW);
-  digitalWrite(greenPin, LOW);
-}
-
-void Leds::blink(const LEDColor color1, const LEDColor color2, const LEDColor color3, const unsigned long interval, const int count) {
-  secondaryBlinkActive = count > 0;
-  secondaryBlinkColor[0] = color1;
-  secondaryBlinkColor[1] = color2;
-  secondaryBlinkColor[2] = color3;
-  secondaryBlinkInterval = interval;
-  secondaryBlinkColorCount = 3;
-  secondaryBlinkCount = 0;
-  secondaryBlinkTotalCount = count;
-  secondaryBlinkInterruptMain = secondaryBlinkActive;
-  mainBlinkPaused = secondaryBlinkActive;
-  mainBlinkPausedMillis = millis();
-
-  if (!secondaryBlinkActive) {
-    blinkColors[0] = color1;
-    blinkColors[1] = color2;
-    blinkColors[2] = color3;
-    blinkInterval = interval;
-    blinkColorCount = 3;
-    blinkTotalCount = 0;
-    blinkMillis = millis();
-    blinkCount = 0;
-    mainBlinkActive = true;
-    mainBlinkColor = color1;
+    mainBlinkColor = *colors.begin();
   }
 
   digitalWrite(redPin, LOW);
@@ -173,7 +123,6 @@ int Leds::getColorPin(const LEDColor color) {
 void Leds::tick() {
   const unsigned long currentMillis = millis();
 
-  // Обработка основного мигания
   if (mainBlinkActive && blinkColorCount > 0 && !secondaryBlinkInterruptMain && !mainBlinkPaused) {
     if (currentMillis - blinkMillis >= blinkInterval) {
       blinkMillis = currentMillis;
@@ -186,39 +135,28 @@ void Leds::tick() {
         blinkCount++;
       }
 
-      // Проверяем, достигнуто ли заданное количество миганий
       if (blinkTotalCount > 0 && blinkCount >= blinkTotalCount) {
-        // Останавливаем мигание после достижения заданного количества
         mainBlinkActive = false;
-        off(RED, true); // Выключаем все светодиоды
+        off(RED, true);
         blinkCount = 0;
         blinkTotalCount = 0;
       } else {
-        // Переходим к следующему цвету
         if (blinkCount >= blinkColorCount) {
-          blinkCount = 0; // Сбрасываем индекс цвета
+          blinkCount = 0;
         }
       }
     }
   }
 
-  // Обработка включения
   if (isOn && onDuration > 0 && currentMillis - onMillis >= onDuration) {
     digitalWrite(getColorPin(onColor), LOW);
     isOn = false;
   }
 
-  // Обработка вторичного мигания
   if (secondaryBlinkActive && currentMillis - secondaryBlinkMillis >= secondaryBlinkInterval) {
     secondaryBlinkMillis = currentMillis;
 
     int colorIndex = secondaryBlinkCount % secondaryBlinkColorCount;
-
-    Serial.print("Secondary blink, colorIndex: ");
-    Serial.println(colorIndex);
-
-    Serial.print("read pin: ");
-    Serial.println(digitalRead(getColorPin(secondaryBlinkColor[colorIndex])));
 
     digitalWrite(getColorPin(secondaryBlinkColor[colorIndex]), !digitalRead(getColorPin(secondaryBlinkColor[colorIndex])));
 
@@ -226,18 +164,16 @@ void Leds::tick() {
       secondaryBlinkCount++;
     }
 
-    // Проверяем, достигнуто ли заданное количество МИГАНИЙ
     if (secondaryBlinkTotalCount > 0 && secondaryBlinkCount >= secondaryBlinkTotalCount) {
       secondaryBlinkActive = false;
       secondaryBlinkCount = 0;
       secondaryBlinkInterruptMain = false;
       digitalWrite(redPin, LOW);
-      digitalWrite(redPin, LOW);
-      digitalWrite(redPin, LOW);
+      digitalWrite(bluePin, LOW);
+      digitalWrite(greenPin, LOW);
     }
   }
 
-  // Обработка паузы основного мигания
   if (mainBlinkPaused && currentMillis - mainBlinkPausedMillis >= secondaryBlinkInterval) {
     mainBlinkPaused = false;
   }
