@@ -7,6 +7,7 @@
 #define RED_LED_PIN 23
 #define BLUE_LED_PIN 18
 #define GREEN_LED_PIN 19
+#define DEFAULT_INTERVAL 500;
 
 enum LEDColor {
   RED,
@@ -14,9 +15,20 @@ enum LEDColor {
   GREEN
 };
 
+struct BlinkConfig {
+  unsigned long millis = 0;
+  int state = 0;
+  int count = 0;
+  int totalCount = 0;
+  LEDColor colors[3] = {LEDColor::RED, LEDColor::BLUE, LEDColor::GREEN};
+  unsigned long interval = DEFAULT_INTERVAL;
+  int colorCount = 0;
+  bool active = false;
+};
+
 class Leds {
 public:
-  static void blink(std::initializer_list<LEDColor> colors, int count = 0, unsigned long interval = blinkInterval);
+  static void blink(std::initializer_list<LEDColor> colors, int count = 0, unsigned long interval = mainBlink.interval);
   static void on(LEDColor color, unsigned long duration = 0);
   static void off();
   static void tick();
@@ -26,34 +38,19 @@ public:
 private:
   static int getColorPin(LEDColor color);
   static void turnOffAllLedPins();
-  static int redPin;
-  static int bluePin;
-  static int greenPin;
-  static unsigned long blinkMillis;
-  static int blinkState;
-  static int blinkCount;
-  static int blinkTotalCount;
-  static LEDColor blinkColors[3];
-  static unsigned long blinkInterval;
-  static int blinkColorCount;
   static unsigned long onMillis;
   static bool isOn;
   static LEDColor onColor;
   static unsigned long onDuration;
-  static bool secondaryBlinkActive;
-  static unsigned long secondaryBlinkMillis;
-  static int secondaryBlinkState;
-  static int secondaryBlinkCount;
-  static int secondaryBlinkTotalCount;
-  static LEDColor secondaryBlinkColor[3];
-  static unsigned long secondaryBlinkInterval;
-  static int secondaryBlinkColorCount;
-  static bool mainBlinkActive;
   static bool secondaryBlinkInterruptMain;
   static bool mainBlinkPaused;
   static unsigned long mainBlinkPausedMillis;
-  static LEDColor mainBlinkColor;
+  static int redPin;
+  static int bluePin;
+  static int greenPin;
   static int ledOnLevel;
+  static BlinkConfig mainBlink;
+  static BlinkConfig secondaryBlink;
 };
 
 #endif

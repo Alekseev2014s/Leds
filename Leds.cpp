@@ -1,35 +1,21 @@
 #include "Leds.h"
 
-unsigned long Leds::blinkMillis = 0;
-int Leds::blinkState = 0;
-int Leds::blinkCount = 0;
-int Leds::blinkTotalCount = 0;
-LEDColor Leds::blinkColors[3] = {LEDColor::RED, LEDColor::BLUE, LEDColor::GREEN};
-unsigned long Leds::blinkInterval = 500;
-int Leds::blinkColorCount = 0;
 unsigned long Leds::onMillis = 0;
 bool Leds::isOn = false;
 LEDColor Leds::onColor = LEDColor::RED;
 unsigned long Leds::onDuration = 0;
-bool Leds::secondaryBlinkActive = false;
-unsigned long Leds::secondaryBlinkMillis = 0;
-int Leds::secondaryBlinkState = 0;
-int Leds::secondaryBlinkCount = 0;
-int Leds::secondaryBlinkTotalCount = 0;
-LEDColor Leds::secondaryBlinkColor[3] = {LEDColor::RED, LEDColor::BLUE, LEDColor::GREEN};
-unsigned long Leds::secondaryBlinkInterval = 500;
-int Leds::secondaryBlinkColorCount = 0;
-bool Leds::mainBlinkActive = false;
 bool Leds::secondaryBlinkInterruptMain = false;
 bool Leds::mainBlinkPaused = false;
 unsigned long Leds::mainBlinkPausedMillis = 0;
-LEDColor Leds::mainBlinkColor = LEDColor::RED;
 int Leds::redPin = RED_LED_PIN;
 int Leds::bluePin = BLUE_LED_PIN;
 int Leds::greenPin = GREEN_LED_PIN;
 int Leds::ledOnLevel = HIGH;
 
-void Leds::begin(const int redPin, const int greenPin, const int bluePin){
+BlinkConfig Leds::mainBlink;
+BlinkConfig Leds::secondaryBlink;
+
+void Leds::begin(const int redPin, const int greenPin, const int bluePin) {
   Leds::redPin = redPin;
   Leds::bluePin = bluePin;
   Leds::greenPin = greenPin;
@@ -45,7 +31,7 @@ void Leds::setOnLevel(const int level) {
 }
 
 void Leds::setInterval(const unsigned long time) {
-  blinkInterval = time;
+  mainBlink.interval = time;
 }
 
 void Leds::turnOffAllLedPins() {
@@ -55,34 +41,33 @@ void Leds::turnOffAllLedPins() {
 }
 
 void Leds::blink(const std::initializer_list<LEDColor> colors, const int count, const unsigned long interval) {
-  secondaryBlinkActive = count > 0;
-  secondaryBlinkInterval = interval;
-  secondaryBlinkCount = 0;
-  secondaryBlinkTotalCount = count;
-  secondaryBlinkInterruptMain = secondaryBlinkActive;
-  mainBlinkPaused = secondaryBlinkActive;
+  secondaryBlink.active = count > 0;
+  secondaryBlink.interval = interval;
+  secondaryBlink.count = 0;
+  secondaryBlink.totalCount = count;
+  secondaryBlinkInterruptMain = secondaryBlink.active;
+  mainBlinkPaused = secondaryBlink.active;
   mainBlinkPausedMillis = millis();
 
   int colorIndex = 0;
   for (LEDColor color : colors) {
-    if (secondaryBlinkActive) {
-      secondaryBlinkColor[colorIndex] = color;
+    if (secondaryBlink.active) {
+      secondaryBlink.colors[colorIndex] = color;
     } else {
-      blinkColors[colorIndex] = color;
+      mainBlink.colors[colorIndex] = color;
     }
     colorIndex++;
   }
 
-  if (secondaryBlinkActive) {
-    secondaryBlinkColorCount = colorIndex;
+  if (secondaryBlink.active) {
+    secondaryBlink.colorCount = colorIndex;
   } else {
-    blinkInterval = interval;
-    blinkColorCount = colorIndex;
-    blinkTotalCount = 0;
-    blinkMillis = millis();
-    blinkCount = 0;
-    mainBlinkActive = true;
-    mainBlinkColor = *colors.begin();
+    mainBlink.interval = interval;
+    mainBlink.colorCount = colorIndex;
+    mainBlink.totalCount = 0;
+    mainBlink.millis = millis();
+    mainBlink.count = 0;
+    mainBlink.active = true;
   }
 
   turnOffAllLedPins();
@@ -99,10 +84,10 @@ void Leds::on(const LEDColor color, const unsigned long duration) {
 
 void Leds::off() {
   turnOffAllLedPins();
-  blinkColorCount = 0;
-  secondaryBlinkActive = false;
+  mainBlink.colorCount = 0;
+  secondaryBlink.active = false;
   isOn = false;
-  mainBlinkActive = false;
+  mainBlink.active = false;
   secondaryBlinkInterruptMain = false;
   mainBlinkPaused = false;
 }
@@ -128,53 +113,53 @@ void Leds::tick() {
     isOn = false;
   }
 
-  if (mainBlinkActive && blinkColorCount > 0 && !secondaryBlinkInterruptMain && !mainBlinkPaused && !isOn) {
-    if (currentMillis - blinkMillis >= blinkInterval) {
-      blinkMillis = currentMillis;
-      blinkState = !blinkState;
+  if (mainBlink.active && mainBlink.colorCount > 0 && !secondaryBlinkInterruptMain && !mainBlinkPaused && !isOn) {
+    if (currentMillis - mainBlink.millis >= mainBlink.interval) {
+      mainBlink.millis = currentMillis;
+      mainBlink.state = !mainBlink.state;
 
-      const int colorIndex = blinkCount % blinkColorCount;
+      const int colorIndex = mainBlink.count % mainBlink.colorCount;
 
-      digitalWrite(getColorPin(blinkColors[colorIndex]), blinkState ? ledOnLevel : !ledOnLevel);
+      digitalWrite(getColorPin(mainBlink.colors[colorIndex]), mainBlink.state ? ledOnLevel : !ledOnLevel);
 
-      if (!blinkState) {
-        blinkCount++;
+      if (!mainBlink.state) {
+        mainBlink.count++;
       }
 
-      if (blinkTotalCount > 0 && blinkCount >= blinkTotalCount) {
-        mainBlinkActive = false;
+      if (mainBlink.totalCount > 0 && mainBlink.count >= mainBlink.totalCount) {
+        mainBlink.active = false;
         off();
-        blinkCount = 0;
-        blinkTotalCount = 0;
+        mainBlink.count = 0;
+        mainBlink.totalCount = 0;
       } else {
-        if (blinkCount >= blinkColorCount) {
-          blinkCount = 0;
+        if (mainBlink.count >= mainBlink.colorCount) {
+          mainBlink.count = 0;
         }
       }
     }
   }
 
-  if (secondaryBlinkActive && currentMillis - secondaryBlinkMillis >= secondaryBlinkInterval && !isOn) {
-    secondaryBlinkMillis = currentMillis;
-    secondaryBlinkState = !secondaryBlinkState;
+  if (secondaryBlink.active && currentMillis - secondaryBlink.millis >= secondaryBlink.interval && !isOn) {
+    secondaryBlink.millis = currentMillis;
+    secondaryBlink.state = !secondaryBlink.state;
 
-    int colorIndex = secondaryBlinkCount % secondaryBlinkColorCount;
+    int colorIndex = secondaryBlink.count % secondaryBlink.colorCount;
 
-    digitalWrite(getColorPin(secondaryBlinkColor[colorIndex]), secondaryBlinkState ? ledOnLevel : !ledOnLevel);
+    digitalWrite(getColorPin(secondaryBlink.colors[colorIndex]), secondaryBlink.state ? ledOnLevel : !ledOnLevel);
 
-    if (!secondaryBlinkState) {
-      secondaryBlinkCount++;
+    if (!secondaryBlink.state) {
+      secondaryBlink.count++;
     }
 
-    if (secondaryBlinkTotalCount > 0 && secondaryBlinkCount >= secondaryBlinkTotalCount) {
-      secondaryBlinkActive = false;
-      secondaryBlinkCount = 0;
+    if (secondaryBlink.totalCount > 0 && secondaryBlink.count >= secondaryBlink.totalCount) {
+      secondaryBlink.active = false;
+      secondaryBlink.count = 0;
       secondaryBlinkInterruptMain = false;
       turnOffAllLedPins();
     }
   }
 
-  if (mainBlinkPaused && currentMillis - mainBlinkPausedMillis >= secondaryBlinkInterval) {
+  if (mainBlinkPaused && currentMillis - mainBlinkPausedMillis >= secondaryBlink.interval) {
     mainBlinkPaused = false;
   }
 }
